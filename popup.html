@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickDrop History</title>
+  <link rel="stylesheet" href="popup.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="popup-header">
+      <span class="title">Clipboard History</span>
+      <div class="header-actions">
+        <button id="clear-btn" class="hidden" title="Delete all history">Delete All</button>
+        <button id="edit-btn" title="Edit mode">Edit</button>
+      </div>
+    </header>
+    <div id="history-list" class="history-list">
+      <!-- 履歴がJSで挿入されます -->
+    </div>
+    <div id="empty-state" class="empty-state hidden">No history yet</div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

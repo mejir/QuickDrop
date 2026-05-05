@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.env
+*.log
+package-lock.json
+icon.ico
+icon.png
+build-icon.js
+settings.json
+window-bounds.json
+clipboard-history.json
