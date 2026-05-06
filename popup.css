@@ -147,6 +147,12 @@ body {
   display: none;
 }
 
+.history-item.keyboard-focus {
+  background-color: var(--accent);
+  color: #fff;
+  outline: none;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }

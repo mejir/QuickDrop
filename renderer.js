@@ -1,5 +1,3 @@
-const { ipcRenderer } = require('electron');
-
 const editor = document.getElementById('editor');
 const charCount = document.getElementById('char-count');
 const saveStatus = document.getElementById('save-status');
@@ -31,7 +29,7 @@ pinBtn.addEventListener('click', () => {
   } else {
     pinBtn.classList.remove('active');
   }
-  ipcRenderer.send('toggle-always-on-top', isPinned);
+  window.electronAPI.toggleAlwaysOnTop(isPinned);
 });
 
 
@@ -108,7 +106,7 @@ const settingShortcut = document.getElementById('setting-shortcut');
 const settingHistoryLimit = document.getElementById('setting-history-limit');
 
 // 起動時に設定を読み込む
-ipcRenderer.invoke('get-settings').then(settings => {
+window.electronAPI.getSettings().then(settings => {
   if (settings) {
     settingStartup.checked = settings.openAtLogin;
     settingShortcut.value = settings.shortcutMain || 'Alt+Space';
@@ -130,6 +128,6 @@ backBtn.addEventListener('click', () => {
     historyLimit: parseInt(settingHistoryLimit.value, 10)
   };
   
-  ipcRenderer.send('save-settings', newSettings);
+  window.electronAPI.saveSettings(newSettings);
   toggleSettings();
 });

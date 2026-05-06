@@ -4,9 +4,13 @@ build/
 .env
 *.log
 package-lock.json
-icon.ico
-icon.png
-build-icon.js
+
+# ユーザー固有のデータ（アプリのuserDataに保存されるため不要）
 settings.json
 window-bounds.json
 clipboard-history.json
+
+# デバッグ用ファイル
+diag-*.json
+diag-*.txt
+simple-ran.txt
