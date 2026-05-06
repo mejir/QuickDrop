@@ -133,17 +133,16 @@ window.popupAPI.on('trigger-hide', () => {
   }, 150);
 });
 
-document.addEventListener('keydown', (e) => {
+// メインプロセスのglobalShortcutからキーボード操作を受け取る（focusable:false対応）
+window.popupAPI.on('navigate', (direction) => {
   const items = getItems();
   if (!items.length) return;
-  if (e.key === 'ArrowDown') {
-    e.preventDefault();
+  if (direction === 'down') {
     setFocus(focusedIndex < 0 ? 0 : focusedIndex + 1);
-  } else if (e.key === 'ArrowUp') {
-    e.preventDefault();
+  } else if (direction === 'up') {
     setFocus(Math.max(0, focusedIndex - 1));
-  } else if (e.key === 'Enter' && focusedIndex >= 0) {
-    e.preventDefault();
+  } else if (direction === 'select' && focusedIndex >= 0) {
     items[focusedIndex]?.click();
   }
 });
+

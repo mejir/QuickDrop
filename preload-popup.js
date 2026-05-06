@@ -1,6 +1,6 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
-const VALID_RECEIVE_CHANNELS = ['history-updated', 'window-shown', 'trigger-hide'];
+const VALID_RECEIVE_CHANNELS = ['history-updated', 'window-shown', 'trigger-hide', 'navigate'];
 
 contextBridge.exposeInMainWorld('popupAPI', {
   pasteItem: (text) => ipcRenderer.send('paste-item', text),

@@ -35,9 +35,23 @@ pinBtn.addEventListener('click', () => {
 
 function updateCounts() {
   const text = editor.value;
-  const chars = text.replace(/\n/g, '').length;
-  charCount.textContent = chars;
+  const totalChars = text.replace(/\n/g, '').length;
+  const selStart = editor.selectionStart;
+  const selEnd = editor.selectionEnd;
+  
+  if (selStart !== selEnd) {
+    // 選択中：選択文字数 / 全体
+    const selectedChars = text.slice(selStart, selEnd).replace(/\n/g, '').length;
+    charCount.textContent = `${selectedChars} / ${totalChars}`;
+  } else {
+    charCount.textContent = totalChars;
+  }
 }
+
+// 選択状態が変わったときもカウントを更新
+editor.addEventListener('select', updateCounts);
+editor.addEventListener('mouseup', updateCounts);
+editor.addEventListener('keyup', updateCounts);
 
 function showSaveStatus(message = 'Saved') {
   saveStatus.textContent = message;
