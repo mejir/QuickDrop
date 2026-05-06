@@ -41,7 +41,11 @@ function loadSettings() {
   } catch (e) {
     console.error('Failed to load settings:', e);
   }
-  app.setLoginItemSettings({ openAtLogin: appSettings.openAtLogin, path: app.getPath('exe') });
+  app.setLoginItemSettings({
+    openAtLogin: appSettings.openAtLogin,
+    path: app.getPath('exe'),
+    args: ['--hidden']  // スタートアップ時はウィンドウを表示しない
+  });
 }
 
 function saveCurrentSettings(newSettings) {
@@ -52,7 +56,11 @@ function saveCurrentSettings(newSettings) {
   } catch (e) {
     console.error('Failed to save settings:', e);
   }
-  app.setLoginItemSettings({ openAtLogin: appSettings.openAtLogin, path: app.getPath('exe') });
+  app.setLoginItemSettings({
+    openAtLogin: appSettings.openAtLogin,
+    path: app.getPath('exe'),
+    args: ['--hidden']
+  });
   if (oldShortcut !== appSettings.shortcutMain) {
     globalShortcut.unregister(oldShortcut);
     registerMainShortcut();
