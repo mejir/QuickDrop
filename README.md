@@ -71,4 +71,4 @@ Tests cover `sanitizeText` (clipboard input sanitization) and `mergeSettings` (s
 
 **No bundler** — For a single-purpose tray utility this size, webpack/vite adds complexity without meaningful benefit. The source files load directly.
 
-**`focusable: true` on the history popup** — Required for arrow key navigation to work. The popup uses `showInactive()` so it appears without stealing focus from the active application, but it can accept keyboard input once opened.
+**`focusable: false` on the history popup** — The popup uses `showInactive()` so it appears without stealing focus from the active application. Arrow key navigation is handled via `globalShortcut` in the main process, so the popup never needs focus to accept keyboard input.

@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('popupAPI', {
   pasteItem: (text) => ipcRenderer.send('paste-item', text),
   hideHistoryWindow: () => ipcRenderer.send('hide-history-window'),
   clearHistory: () => ipcRenderer.send('clear-history'),
+  deleteHistoryItem: (index) => ipcRenderer.send('delete-history-item', index),
   getHistory: () => ipcRenderer.invoke('get-history'),
   on: (channel, callback) => {
     if (!VALID_RECEIVE_CHANNELS.includes(channel)) return;

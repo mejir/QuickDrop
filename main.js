@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, clipboard, ipcMain, screen, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, globalShortcut, clipboard, ipcMain, screen, Tray, Menu, nativeImage, Notification } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
@@ -20,6 +20,8 @@ let appSettings = {
   shortcutMain: 'Alt+Space',
   historyLimit: 50
 };
+
+let appIsQuitting = false;
 
 // 多重起動の防止
 const gotTheLock = app.requestSingleInstanceLock();
@@ -109,7 +111,16 @@ function createMainWindow() {
   });
   mainWindow.loadFile('index.html');
   mainWindow.setMenuBarVisibility(false);
-  mainWindow.on('close', () => saveBounds(mainWindow.getBounds()));
+  mainWindow.on('close', (e) => {
+    saveBounds(mainWindow.getBounds());
+    if (!appIsQuitting) {
+      e.preventDefault();
+      mainWindow.hide();
+      if (!historyWindow || !historyWindow.isVisible()) {
+        globalShortcut.unregister('Escape');
+      }
+    }
+  });
 }
 
 function createHistoryWindow() {
@@ -156,15 +167,13 @@ function registerMainShortcut() {
       if (mainWindow) {
         if (mainWindow.isVisible()) {
           mainWindow.hide();
-          globalShortcut.unregister('Escape');
+          if (!historyWindow || !historyWindow.isVisible()) {
+            globalShortcut.unregister('Escape');
+          }
         } else {
           mainWindow.show();
           mainWindow.focus();
-          globalShortcut.register('Escape', () => {
-            if (mainWindow.isVisible()) mainWindow.hide();
-            if (historyWindow && historyWindow.isVisible()) historyWindow.webContents.send('trigger-hide');
-            globalShortcut.unregister('Escape');
-          });
+          registerEscape();
         }
       }
     });
@@ -200,6 +209,19 @@ function unregisterPopupKeys() {
   } catch (e) {}
 }
 
+function registerEscape() {
+  try { globalShortcut.unregister('Escape'); } catch (e) {}
+  try {
+    globalShortcut.register('Escape', () => {
+      if (mainWindow && mainWindow.isVisible()) mainWindow.hide();
+      if (historyWindow && !historyWindow.isDestroyed() && historyWindow.isVisible()) {
+        historyWindow.webContents.send('trigger-hide');
+      }
+      globalShortcut.unregister('Escape');
+    });
+  } catch (e) { console.error('Failed to register Escape:', e); }
+}
+
 // --- アプリ起動 ---
 
 app.whenReady().then(() => {
@@ -227,7 +249,7 @@ app.whenReady().then(() => {
   tray.setContextMenu(Menu.buildFromTemplate([
     { label: 'Show Notepad', click: () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } } },
     { type: 'separator' },
-    { label: 'Quit', click: () => { app.isQuitting = true; app.quit(); } }
+    { label: 'Quit', click: () => { appIsQuitting = true; app.quit(); } }
   ]));
   tray.on('double-click', () => { if (mainWindow) { mainWindow.show(); mainWindow.focus(); } });
 
@@ -248,15 +270,8 @@ app.whenReady().then(() => {
           y: cursorPoint.y - display.bounds.y
         });
 
-        // ポップアップ表示中のキーボード操作を有効にする
         registerPopupKeys();
-
-        globalShortcut.register('Escape', () => {
-          if (historyWindow.isVisible()) historyWindow.webContents.send('trigger-hide');
-          if (mainWindow && mainWindow.isVisible()) mainWindow.hide();
-          globalShortcut.unregister('Escape');
-        });
-
+        registerEscape();
         historyWindow.webContents.send('history-updated', clipboardHistory);
       }
     }
@@ -289,7 +304,9 @@ ipcMain.on('hide-history-window', () => {
     if (historyWindow && !historyWindow.isDestroyed()) {
       historyWindow.hide();
       unregisterPopupKeys();
-      globalShortcut.unregister('Escape');
+      if (!mainWindow || !mainWindow.isVisible()) {
+        globalShortcut.unregister('Escape');
+      }
     }
   } catch (e) { console.error('hide-history-window error:', e); }
 });
@@ -301,13 +318,22 @@ ipcMain.on('paste-item', (event, text) => {
     if (historyWindow && !historyWindow.isDestroyed()) {
       historyWindow.hide();
       unregisterPopupKeys();
-      globalShortcut.unregister('Escape');
+      if (!mainWindow || !mainWindow.isVisible()) {
+        globalShortcut.unregister('Escape');
+      }
     }
     clipboard.writeText(safe);
     lastClipboardText = safe;
     setTimeout(() => {
       const script = `powershell -NoProfile -NonInteractive -WindowStyle Hidden -Command "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v'); [System.Runtime.Interopservices.Marshal]::ReleaseComObject($wshell) | Out-Null"`;
-      exec(script, (err) => { if (err) console.error('Auto paste failed:', err); });
+      exec(script, (err) => {
+        if (err) {
+          console.error('Auto paste failed:', err);
+          if (Notification.isSupported()) {
+            new Notification({ title: 'QuickDrop', body: 'Auto-paste failed. Use Ctrl+V to paste manually.' }).show();
+          }
+        }
+      });
     }, 150);
   } catch (e) { console.error('paste-item error:', e); }
 });
@@ -315,6 +341,20 @@ ipcMain.on('paste-item', (event, text) => {
 ipcMain.handle('get-history', () => {
   try { return clipboardHistory; }
   catch (e) { console.error('get-history error:', e); return []; }
+});
+
+ipcMain.on('delete-history-item', (_event, text) => {
+  try {
+    if (typeof text !== 'string') return;
+    const index = clipboardHistory.indexOf(text);
+    if (index !== -1) {
+      clipboardHistory.splice(index, 1);
+      saveHistoryDebounced();
+      if (historyWindow && !historyWindow.isDestroyed()) {
+        historyWindow.webContents.send('history-updated', clipboardHistory);
+      }
+    }
+  } catch (e) { console.error('delete-history-item error:', e); }
 });
 
 ipcMain.on('clear-history', () => {

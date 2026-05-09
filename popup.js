@@ -2,8 +2,12 @@ const historyListEl = document.getElementById('history-list');
 const emptyStateEl = document.getElementById('empty-state');
 const clearBtn = document.getElementById('clear-btn');
 const popupContainer = document.querySelector('.popup-container');
+const editBtn = document.getElementById('edit-btn');
 
 let focusedIndex = -1;
+let currentHistory = [];
+let isEditMode = false;
+let clearConfirmTimeout;
 
 function getItems() {
   return Array.from(historyListEl.querySelectorAll('.history-item'));
@@ -19,29 +23,46 @@ function setFocus(index) {
 }
 
 function renderHistory(history) {
+  currentHistory = history || [];
   focusedIndex = -1;
   historyListEl.innerHTML = '';
 
-  if (!history || history.length === 0) {
+  if (!currentHistory.length) {
     emptyStateEl.classList.remove('hidden');
     return;
   }
 
   emptyStateEl.classList.add('hidden');
 
-  history.forEach(text => {
+  currentHistory.forEach((text) => {
     const item = document.createElement('div');
     item.className = 'history-item';
-    item.textContent = text;
 
-    item.addEventListener('click', () => {
-      popupContainer.classList.remove('show-anim');
-      popupContainer.classList.add('hide-anim');
+    const textEl = document.createElement('span');
+    textEl.className = 'item-text';
+    textEl.textContent = text;
+    item.appendChild(textEl);
 
-      setTimeout(() => {
-        window.popupAPI.pasteItem(text);
-      }, 100);
-    });
+    if (isEditMode) {
+      item.classList.add('edit-mode');
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'item-delete-btn';
+      deleteBtn.textContent = '×';
+      deleteBtn.title = 'Delete this item';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        window.popupAPI.deleteHistoryItem(text);
+      });
+      item.appendChild(deleteBtn);
+    } else {
+      item.addEventListener('click', () => {
+        popupContainer.classList.remove('show-anim');
+        popupContainer.classList.add('hide-anim');
+        setTimeout(() => {
+          window.popupAPI.pasteItem(text);
+        }, 100);
+      });
+    }
 
     historyListEl.appendChild(item);
   });
@@ -55,10 +76,6 @@ window.popupAPI.getHistory().then((history) => {
   renderHistory(history);
 });
 
-const editBtn = document.getElementById('edit-btn');
-let isEditMode = false;
-let clearConfirmTimeout;
-
 editBtn.addEventListener('click', () => {
   isEditMode = !isEditMode;
   if (isEditMode) {
@@ -68,20 +85,20 @@ editBtn.addEventListener('click', () => {
     editBtn.textContent = 'Edit';
     clearBtn.classList.add('hidden');
     clearBtn.textContent = 'Delete All';
+    clearTimeout(clearConfirmTimeout);
   }
+  renderHistory(currentHistory);
 });
 
 clearBtn.addEventListener('click', () => {
   if (clearBtn.textContent === 'Delete All') {
     clearBtn.textContent = 'Confirm Delete';
-
     clearTimeout(clearConfirmTimeout);
     clearConfirmTimeout = setTimeout(() => {
       clearBtn.textContent = 'Delete All';
     }, 3000);
   } else {
     window.popupAPI.clearHistory();
-
     isEditMode = false;
     editBtn.textContent = 'Edit';
     clearBtn.classList.add('hidden');
@@ -123,6 +140,7 @@ window.popupAPI.on('window-shown', (pos) => {
   editBtn.textContent = 'Edit';
   clearBtn.classList.add('hidden');
   clearBtn.textContent = 'Delete All';
+  clearTimeout(clearConfirmTimeout);
 });
 
 window.popupAPI.on('trigger-hide', () => {
@@ -133,8 +151,8 @@ window.popupAPI.on('trigger-hide', () => {
   }, 150);
 });
 
-// メインプロセスのglobalShortcutからキーボード操作を受け取る（focusable:false対応）
 window.popupAPI.on('navigate', (direction) => {
+  if (isEditMode) return;
   const items = getItems();
   if (!items.length) return;
   if (direction === 'down') {
@@ -145,4 +163,3 @@ window.popupAPI.on('navigate', (direction) => {
     items[focusedIndex]?.click();
   }
 });
-
